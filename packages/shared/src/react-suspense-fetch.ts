@@ -9,9 +9,39 @@ type FetchFunc<Input, Result> = (
 
 type AreEqual<Input> = (a: Input, b: Input) => boolean;
 export type OnProgress = (value: number) => void;
+type PromiseStatus = 'pending' | 'fulfilled' | 'rejected';
+
+interface PendingPromiseWithStatus<T> extends Promise<T> {
+  status: 'pending';
+  value: null;
+  reason: null;
+}
+
+interface FulfilledPromiseWithStatus<T> extends Promise<T> {
+  status: 'fulfilled';
+  value: T;
+  reason: null;
+}
+
+interface RejectedPromiseWithStatus<T> extends Promise<T> {
+  status: 'rejected';
+  value: null;
+  reason: unknown;
+}
+
+export type PromiseWithStatus<T> =
+  | PendingPromiseWithStatus<T>
+  | FulfilledPromiseWithStatus<T>
+  | RejectedPromiseWithStatus<T>;
+
+type MutablePromiseWithStatus<T> = Promise<T> & {
+  status: PromiseStatus;
+  value: T | null;
+  reason: unknown;
+};
 
 interface Instance<Result> {
-  get: () => Promise<Result>;
+  get: () => PromiseWithStatus<Result>;
   isError: () => boolean;
   abort: (reason?: string) => void;
 }
@@ -19,7 +49,7 @@ interface Instance<Result> {
 export interface FetchStore<Input, Result> {
   has: (input: Input) => boolean;
   prefetch: (input: Input) => void;
-  get: (input: Input) => Promise<Result>;
+  get: (input: Input) => PromiseWithStatus<Result>;
   preset: (input: Input, result: Result) => void;
   evict: (input: Input) => void;
   evictErrors: () => void;
@@ -61,14 +91,14 @@ export function createFetchStore<Input, Result>(
         cache.set(input, createInstance(input, fetchFunc, progressStore));
       }
     },
-    get: (input: Input): Promise<Result> => {
+    get: (input: Input): PromiseWithStatus<Result> => {
       const instance =
         cache.get(input) || createInstance(input, fetchFunc, progressStore);
       cache.set(input, instance);
       return instance.get();
     },
     preset: (input: Input, result: Result): void => {
-      const promise = Promise.resolve(result);
+      const promise = createFulfilledPromiseWithStatus(result);
       cache.set(input, {
         get: () => promise,
         isError: () => false,
@@ -147,22 +177,34 @@ function createInstance<Input, Result>(
   fetchFunc: FetchFunc<Input, Result>,
   progressStore: StoreApi<ProgressState<Input>>,
 ): Instance<Result> {
-  let result: Result | undefined;
-  let error: unknown;
   const controller = new AbortController();
+  const { promise, resolve, reject } = createPendingPromiseWithStatus<Result>();
 
-  const promise: Promise<Result> = (async () => {
-    progressStore.getState().setProgress(input);
-    result = await fetchFunc(input, controller.signal, (value) => {
-      progressStore.getState().setProgress(input, value);
-    });
-    progressStore.getState().clearProgress(input);
-    return result;
+  progressStore.getState().setProgress(input);
+
+  void (async () => {
+    try {
+      const result = await fetchFunc(input, controller.signal, (value) => {
+        progressStore.getState().setProgress(input, value);
+      });
+
+      promise.status = 'fulfilled';
+      promise.value = result;
+      promise.reason = null;
+      resolve(result);
+    } catch (fetchError: unknown) {
+      promise.status = 'rejected';
+      promise.value = null;
+      promise.reason = fetchError;
+      reject(fetchError);
+    } finally {
+      progressStore.getState().clearProgress(input);
+    }
   })();
 
   return {
-    get: () => promise,
-    isError: () => error !== undefined,
+    get: () => promise as PromiseWithStatus<Result>,
+    isError: () => false,
     abort: (reason?: string) => {
       controller.abort(new AbortError(reason));
     },
@@ -174,4 +216,32 @@ export class AbortError extends Error {
     super(reason);
     this.name = 'AbortError';
   }
+}
+
+function createPendingPromiseWithStatus<T>() {
+  let resolveFn!: (value: T | PromiseLike<T>) => void;
+  let rejectFn!: (reason?: unknown) => void;
+
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveFn = resolve;
+    rejectFn = reject;
+  }) as MutablePromiseWithStatus<T>;
+
+  promise.status = 'pending';
+  promise.value = null;
+  promise.reason = null;
+
+  return {
+    promise,
+    resolve: resolveFn,
+    reject: rejectFn,
+  };
+}
+
+function createFulfilledPromiseWithStatus<T>(value: T): PromiseWithStatus<T> {
+  const promise = Promise.resolve(value) as MutablePromiseWithStatus<T>;
+  promise.status = 'fulfilled';
+  promise.value = value;
+  promise.reason = null;
+  return promise as PromiseWithStatus<T>;
 }
