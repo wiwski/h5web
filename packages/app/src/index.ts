@@ -14,7 +14,7 @@ export {
 
 export { enableBigIntSerialization } from './utils';
 export { getFeedbackMailto } from './breadcrumbs/utils';
-export { AbortError } from '@h5web/shared/react-suspense-fetch';
+export { AbortError } from '@h5web/shared/fetch-shared';
 
 export type { FeedbackContext } from './breadcrumbs/models';
 export type GetExportURL = NonNullable<DataProviderApi['getExportURL']>;
@@ -26,7 +26,12 @@ export type {
 } from '@h5web/shared/vis-models';
 
 // Context
-export { useDataContext } from './providers/DataProvider';
+export {
+  useDataContext,
+  useDataQueries,
+  useDataQuery,
+  useDataSuspenseQuery,
+} from './providers/DataProvider';
 export type { DataContextValue } from './providers/DataProvider';
 export type {
   EntitiesStore,

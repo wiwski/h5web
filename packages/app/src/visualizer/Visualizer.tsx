@@ -1,6 +1,5 @@
-import { use } from 'react';
-
-import { useDataContext } from '../providers/DataProvider';
+import EntityLoader from '../EntityLoader';
+import { useDataContext, useDataQuery } from '../providers/DataProvider';
 import { resolvePath } from './utils';
 import VisManager from './VisManager';
 import styles from './Visualizer.module.css';
@@ -13,7 +12,18 @@ function Visualizer(props: Props) {
   const { path } = props;
 
   const { entitiesStore, attrValuesStore } = useDataContext();
-  const resolution = use(resolvePath(path, entitiesStore, attrValuesStore));
+  const { data, isPending } = useDataQuery({
+    queryKey: ['path-resolution', path],
+    queryFn: async () => ({
+      resolution: await resolvePath(path, entitiesStore, attrValuesStore),
+    }),
+  });
+
+  if (isPending || !data) {
+    return <EntityLoader isInspecting={false} />;
+  }
+
+  const { resolution } = data;
 
   if (!resolution) {
     return (

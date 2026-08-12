@@ -4,6 +4,7 @@ import { buildEntityPath } from '@h5web/shared/hdf5-utils';
 import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
+import EntityLoader from '../EntityLoader';
 import { useEntity } from '../hooks';
 import AttrErrorFallback from './AttrErrorFallback';
 import AttributesInfo from './AttributesInfo';
@@ -22,6 +23,10 @@ function MetadataViewer(props: Props) {
   const { path, onSelectPath } = props;
 
   const entity = useEntity(path);
+  if (!entity) {
+    return <EntityLoader isInspecting />;
+  }
+
   const { kind, attributes } = entity;
   const title = kind === EntityKind.Unresolved ? 'Entity' : kind;
 

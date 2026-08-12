@@ -23,9 +23,9 @@ test('inspect scalar datasets', async () => {
   const column = screen.getByRole('columnheader', { name: /dataset/ });
   const nameRow = screen.getByRole('row', { name: /^Name/ });
   const pathRow = screen.getByRole('row', { name: /^Path/ });
-  const typeRow = screen.getByRole('row', { name: /^Type/ });
   const shapeRow = screen.getByRole('row', { name: /^Shape/ });
-  const attrRow = screen.getByRole('row', { name: /^attr/ });
+  let typeRow = screen.getByRole('row', { name: /^Type/ });
+  let attrRow = screen.getByRole('row', { name: /^attr/ });
 
   expect(column).toBeVisible();
   expect(nameRow).toHaveTextContent(/scalar_num$/);
@@ -35,16 +35,22 @@ test('inspect scalar datasets', async () => {
   expect(attrRow).toHaveTextContent(/0$/);
 
   await selectExplorerNode('scalar_bigint');
+  typeRow = screen.getByRole('row', { name: /^Type/ });
+  attrRow = screen.getByRole('row', { name: /^attr/ });
   expect(typeRow).toHaveTextContent(
     /Integer \(signed\), 64-bit, little-endian$/,
   );
   expect(attrRow).toHaveTextContent(/"9007199254740992n"$/);
 
   await selectExplorerNode('scalar_str');
+  typeRow = screen.getByRole('row', { name: /^Type/ });
+  attrRow = screen.getByRole('row', { name: /^attr/ });
   expect(typeRow).toHaveTextContent(/ASCII string, variable length$/);
   expect(attrRow).toHaveTextContent(/"foo"$/);
 
   await selectExplorerNode('scalar_cplx');
+  typeRow = screen.getByRole('row', { name: /^Type/ });
+  attrRow = screen.getByRole('row', { name: /^attr/ });
   expect(typeRow).toHaveTextContent(/Complex$/);
   expect(attrRow).toHaveTextContent(/1 \+ 5 i$/);
 });

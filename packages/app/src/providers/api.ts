@@ -1,10 +1,10 @@
+import { type OnProgress } from '@h5web/shared/fetch-shared';
 import {
   type AttributeValues,
   type Dataset,
   type Entity,
   type ProvidedEntity,
 } from '@h5web/shared/hdf5-models';
-import { type OnProgress } from '@h5web/shared/react-suspense-fetch';
 import {
   type BuiltInExporter,
   type ExportFormat,

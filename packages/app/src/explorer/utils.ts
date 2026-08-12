@@ -1,6 +1,5 @@
 import { assertDefined, assertNonNull, isGroup } from '@h5web/shared/guards';
 import { type ChildEntity } from '@h5web/shared/hdf5-models';
-import memoizee from 'memoizee';
 import { type KeyboardEvent } from 'react';
 
 import { type AttrValuesStore } from '../providers/models';
@@ -10,9 +9,7 @@ const SUPPORTED_NX_CLASSES = new Set(['NXdata', 'NXentry', 'NXprocess']);
 
 export const EXPLORER_ID = 'h5web-explorer-tree';
 
-export const needsNxBadge = memoizee(_needsNxBadge, { promise: true });
-
-async function _needsNxBadge(
+export async function needsNxBadge(
   entity: ChildEntity,
   attrValuesStore: AttrValuesStore,
 ): Promise<boolean> {

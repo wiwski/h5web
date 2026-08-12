@@ -1,3 +1,4 @@
+import { type OnProgress } from '@h5web/shared/fetch-shared';
 import {
   assertDefined,
   assertGroup,
@@ -16,7 +17,6 @@ import {
   type ProvidedEntity,
 } from '@h5web/shared/hdf5-models';
 import { buildEntityPath, getChildEntity } from '@h5web/shared/hdf5-utils';
-import { type OnProgress } from '@h5web/shared/react-suspense-fetch';
 import {
   type BuiltInExporter,
   type ExportFormat,

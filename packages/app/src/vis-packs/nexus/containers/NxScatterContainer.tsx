@@ -3,9 +3,11 @@ import {
   assertGroup,
   assertNumDims,
 } from '@h5web/shared/guards';
-import { use } from 'react';
 
-import { useDataContext } from '../../../providers/DataProvider';
+import {
+  useDataContext,
+  useDataSuspenseQuery,
+} from '../../../providers/DataProvider';
 import { useScatterConfig } from '../../core/scatter/config';
 import MappedScatterVis from '../../core/scatter/MappedScatterVis';
 import { type VisContainerProps } from '../../models';
@@ -20,7 +22,10 @@ function NxScatterContainer(props: VisContainerProps) {
   assertGroup(entity);
 
   const { attrValuesStore } = useDataContext();
-  const nxData = use(findNxData(entity, attrValuesStore));
+  const { data: nxData } = useDataSuspenseQuery({
+    queryKey: ['nx-data', entity.path],
+    queryFn: async () => findNxData(entity, attrValuesStore),
+  });
   assertNumericNxData(nxData);
   const { signalDef, axisDefs, silxStyle } = nxData;
 

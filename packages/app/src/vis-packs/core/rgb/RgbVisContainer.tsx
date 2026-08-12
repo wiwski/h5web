@@ -5,11 +5,10 @@ import {
   assertMinDims,
   assertNumericType,
 } from '@h5web/shared/guards';
-import { use } from 'react';
 
 import { useDimMappingState } from '../../../dim-mapping-store';
 import { useValuesInCache } from '../../../hooks';
-import { useDataContext } from '../../../providers/DataProvider';
+import { useDataContext, useDataQuery } from '../../../providers/DataProvider';
 import visualizerStyles from '../../../visualizer/Visualizer.module.css';
 import { type VisContainerProps } from '../../models';
 import VisBoundary from '../../VisBoundary';
@@ -25,7 +24,11 @@ function RgbVisContainer(props: VisContainerProps) {
   assertNumericType(entity);
 
   const { attrValuesStore } = useDataContext();
-  const { IMAGE_SUBCLASS: imageSubclass } = use(attrValuesStore.get(entity));
+  const { data: attrValues } = useDataQuery({
+    queryKey: ['attribute-values', entity.path],
+    queryFn: async () => attrValuesStore.get(entity),
+  });
+  const imageSubclass = attrValues?.IMAGE_SUBCLASS;
   if (imageSubclass && imageSubclass !== 'IMAGE_TRUECOLOR') {
     throw new Error('RGB Vis only supports IMAGE_TRUECOLOR.');
   }

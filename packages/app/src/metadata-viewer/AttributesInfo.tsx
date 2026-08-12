@@ -1,9 +1,9 @@
 import { isComplexValue } from '@h5web/shared/guards';
 import { type ProvidedEntity } from '@h5web/shared/hdf5-models';
-import { use } from 'react';
 
-import { useDataContext } from '../providers/DataProvider';
+import { useDataContext, useDataQuery } from '../providers/DataProvider';
 import AttributeLink from './AttributeLink';
+import AttrValueLoader from './AttrValueLoader';
 import { renderComplex } from './utils';
 
 const FOLLOWABLE_ATTRS = new Set([
@@ -22,7 +22,14 @@ function AttributesInfo(props: Props) {
   const { entity, onFollowPath } = props;
 
   const { attrValuesStore } = useDataContext();
-  const attrValues = use(attrValuesStore.get(entity));
+  const { data: attrValues } = useDataQuery({
+    queryKey: ['attribute-values', entity.path],
+    queryFn: async () => attrValuesStore.get(entity),
+  });
+
+  if (!attrValues) {
+    return <AttrValueLoader />;
+  }
 
   return entity.attributes.map(({ name, type }) => {
     const value = attrValues[name];

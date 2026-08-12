@@ -1,3 +1,4 @@
+import { AbortError, type OnProgress } from '@h5web/shared/fetch-shared';
 import {
   isBoolType,
   isEnumType,
@@ -10,10 +11,6 @@ import {
   type DType,
   type ScalarShape,
 } from '@h5web/shared/hdf5-models';
-import {
-  AbortError,
-  type OnProgress,
-} from '@h5web/shared/react-suspense-fetch';
 import {
   type BigIntTypedArrayConstructor,
   type TypedArrayConstructor,

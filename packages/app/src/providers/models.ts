@@ -1,3 +1,4 @@
+import { type FetchStore, type OnProgress } from '@h5web/shared/fetch-shared';
 import {
   type ArrayShape,
   type AttributeValues,
@@ -6,15 +7,17 @@ import {
   type ProvidedEntity,
   type ScalarShape,
 } from '@h5web/shared/hdf5-models';
-import {
-  type FetchStore,
-  type OnProgress,
-} from '@h5web/shared/react-suspense-fetch';
 
 import { type NxAttribute } from '../vis-packs/nexus/models';
+import { type QueryStore } from './query-store';
 
 export type EntitiesStore = FetchStore<string, ProvidedEntity>;
-export type ValuesStore = FetchStore<ValuesStoreParams, unknown>;
+export type ValueQueryKey = readonly [
+  type: 'dataset-value',
+  path: string,
+  selection: string | undefined,
+];
+export type ValuesStore = QueryStore<ValuesStoreParams, unknown, ValueQueryKey>;
 export type AttrValuesStore = FetchStore<Entity, AttributeValues>;
 
 export interface ValuesStoreParams {

@@ -7,6 +7,7 @@ import {
 import { type ReactNode } from 'react';
 
 import { useDatasetValue } from '../../hooks';
+import ValueLoader from '../ValueLoader';
 
 interface Props<D extends Dataset> {
   dataset: D;
@@ -20,6 +21,10 @@ function ValueFetcher<D extends Dataset<ArrayShape | ScalarShape>>(
   const { dataset, selection, render } = props;
 
   const value = useDatasetValue(dataset, selection);
+  if (value === undefined) {
+    return <ValueLoader isSlice={selection !== undefined} />;
+  }
+
   return render(value);
 }
 

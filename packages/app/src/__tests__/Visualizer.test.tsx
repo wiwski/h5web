@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
+import { MockApi } from '../providers/mock/mock-api';
 import { SLOW_TIMEOUT } from '../providers/mock/utils';
 import { mockConsoleMethod, renderApp } from '../test-utils';
 import { Vis } from '../vis-packs/core/visualizations';
@@ -24,9 +25,13 @@ test('show loader while fetching dataset value', async () => {
 
 test("show error when dataset value can't be fetched", async () => {
   const errorSpy = mockConsoleMethod('error');
+  const getAttrValuesSpy = vi
+    .spyOn(MockApi.prototype, 'getAttrValues')
+    .mockResolvedValue({ attr: undefined });
   const { selectExplorerNode } = await renderApp('/resilience/error_value');
 
   expect(screen.getByText('error')).toBeVisible();
+  getAttrValuesSpy.mockRestore();
   errorSpy.mockRestore();
 
   // Make sure error boundary resets when selecting another entity

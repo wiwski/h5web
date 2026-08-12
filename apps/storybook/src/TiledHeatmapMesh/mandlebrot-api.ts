@@ -101,6 +101,6 @@ export class MandelbrotTilesApi extends TilesApi {
   }
 
   public get(layer: number, offset: Vector2): NdArray<Float32Array> {
-    return this.store.get({ layer, offset });
+    return this.store.read({ layer, offset });
   }
 }

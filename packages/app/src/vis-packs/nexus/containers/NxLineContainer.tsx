@@ -1,9 +1,12 @@
 import { DimensionMapper, getSliceSelection, ScaleType } from '@h5web/lib';
 import { assertGroup, isAxisScaleType } from '@h5web/shared/guards';
-import { use, useState } from 'react';
+import { useState } from 'react';
 
 import { useDimMappingState } from '../../../dim-mapping-store';
-import { useDataContext } from '../../../providers/DataProvider';
+import {
+  useDataContext,
+  useDataSuspenseQuery,
+} from '../../../providers/DataProvider';
 import visualizerStyles from '../../../visualizer/Visualizer.module.css';
 import { useLineConfig } from '../../core/line/config';
 import MappedLineVis from '../../core/line/MappedLineVis';
@@ -20,7 +23,10 @@ function NxLineContainer(props: VisContainerProps) {
   assertGroup(entity);
 
   const { attrValuesStore } = useDataContext();
-  const nxData = use(findNxData(entity, attrValuesStore));
+  const { data: nxData } = useDataSuspenseQuery({
+    queryKey: ['nx-data', entity.path],
+    queryFn: async () => findNxData(entity, attrValuesStore),
+  });
   assertNumericLikeNxData(nxData);
 
   const { signalDef, axisDefs, auxDefs, defaultSlice, silxStyle } = nxData;

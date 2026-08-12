@@ -275,66 +275,75 @@ test('ignore malformed `SILX_style` attribute', async () => {
 });
 
 test('cancel and retry slow fetch of NxLine', async () => {
+  const errorSpy = mockConsoleMethod('error'); // React 19 `act` warning from async rendering
   const { user } = await renderApp({
     initialPath: '/resilience/slow_nx_spectrum',
     withFakeTimers: true,
   });
 
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Cancel all fetches at once
-  const errorSpy = mockConsoleMethod('error');
   await user.click(screen.getByRole('button', { name: /Cancel/ }));
   await expect(screen.findByText('Request cancelled')).resolves.toBeVisible();
-  errorSpy.mockRestore();
 
   // Retry all fetches at once
   await user.click(screen.getByRole('button', { name: /Retry/ }));
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Let fetches succeed
   await expect(
     screen.findByRole('figure', undefined, { timeout: SLOW_TIMEOUT }),
   ).resolves.toBeVisible();
+  errorSpy.mockRestore();
 });
 
 test('cancel and retry slow fetch of NxHeatmap', async () => {
+  const errorSpy = mockConsoleMethod('error'); // React 19 `act` warning from async rendering
   const { user } = await renderApp({
     initialPath: '/resilience/slow_nx_image',
     withFakeTimers: true,
   });
 
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Cancel all fetches at once
-  const errorSpy = mockConsoleMethod('error');
   await user.click(screen.getByRole('button', { name: /Cancel/ }));
   await expect(screen.findByText('Request cancelled')).resolves.toBeVisible();
-  errorSpy.mockRestore();
 
   // Retry all fetches at once
   await user.click(screen.getByRole('button', { name: /Retry/ }));
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Let fetches succeed
   await expect(
     screen.findByRole('figure', undefined, { timeout: SLOW_TIMEOUT }),
   ).resolves.toBeVisible();
+  errorSpy.mockRestore();
 });
 
 test('retry fetching automatically when re-selecting NxLine', async () => {
+  const errorSpy = mockConsoleMethod('error'); // React 19 `act` warning from async rendering
   const { user, selectExplorerNode } = await renderApp({
     initialPath: '/resilience/slow_nx_spectrum',
     withFakeTimers: true,
   });
 
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Cancel all fetches at once
-  const errorSpy = mockConsoleMethod('error');
   await user.click(screen.getByRole('button', { name: /Cancel/ }));
   await expect(screen.findByText('Request cancelled')).resolves.toBeVisible();
-  errorSpy.mockRestore();
 
   // Switch to other entity with no visualization
   await selectExplorerNode('entities');
@@ -342,32 +351,38 @@ test('retry fetching automatically when re-selecting NxLine', async () => {
 
   // Select NXdata group again
   await selectExplorerNode('slow_nx_spectrum');
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Let fetches succeed
   await expect(
     screen.findByRole('figure', undefined, { timeout: SLOW_TIMEOUT }),
   ).resolves.toBeVisible();
+  errorSpy.mockRestore();
 });
 
 test('retry fetching automatically when selecting other NxHeatmap slice', async () => {
+  const errorSpy = mockConsoleMethod('error'); // React 19 `act` warning from async rendering
   const { user } = await renderApp({
     initialPath: '/resilience/slow_nx_image',
     withFakeTimers: true,
   });
 
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Cancel all fetches at once
-  const errorSpy = mockConsoleMethod('error');
   await user.click(screen.getByRole('button', { name: /Cancel/ }));
   await expect(screen.findByText('Request cancelled')).resolves.toBeVisible();
-  errorSpy.mockRestore();
 
   // Move to other slice to retry fetching automatically
   const d0Slider = screen.getByRole('slider', { name: 'D0' });
   await user.type(d0Slider, '{PageUp}');
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Let fetches succeed
   await expect(
@@ -376,10 +391,13 @@ test('retry fetching automatically when selecting other NxHeatmap slice', async 
 
   // Move back to first slice to retry fetching it automatically
   await user.type(d0Slider, '{PageDown}');
-  await expect(screen.findByText(/Loading data/)).resolves.toBeVisible();
+  await expect(screen.findAllByRole('progressbar')).resolves.not.toHaveLength(
+    0,
+  );
 
   // Let fetch of first slice succeed
   await expect(
     screen.findByRole('figure', undefined, { timeout: SLOW_TIMEOUT }),
   ).resolves.toBeVisible();
+  errorSpy.mockRestore();
 });

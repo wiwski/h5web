@@ -4,7 +4,6 @@ import {
   type GroupWithChildren,
   type NumericLikeType,
 } from '@h5web/shared/hdf5-models';
-import memoizee from 'memoizee';
 
 import { useValuesInCache } from '../../hooks';
 import { type AttrValuesStore } from '../../providers/models';
@@ -22,8 +21,7 @@ import {
   isNxDataGroup,
 } from './utils';
 
-export const findNxData = memoizee(_findNxData, { promise: true });
-async function _findNxData(
+export async function findNxData(
   group: GroupWithChildren,
   attrValuesStore: AttrValuesStore,
 ): Promise<NxData> {

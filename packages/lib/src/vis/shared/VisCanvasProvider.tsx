@@ -1,4 +1,4 @@
-import { assertDefined, assertNonNull } from '@h5web/shared/guards';
+import { assertNonNull } from '@h5web/shared/guards';
 import { type VisibleDomains } from '@h5web/shared/vis-models';
 import { useThree } from '@react-three/fiber';
 import {

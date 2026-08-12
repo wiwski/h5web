@@ -46,6 +46,6 @@ export class CheckerboardTilesApi extends TilesApi {
   }
 
   public get(layer: number, offset: Vector2): NdArray<Uint8Array> {
-    return this.store.get({ layer, offset });
+    return this.store.read({ layer, offset });
   }
 }

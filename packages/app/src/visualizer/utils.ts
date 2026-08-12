@@ -6,7 +6,6 @@ import {
   type ProvidedEntity,
 } from '@h5web/shared/hdf5-models';
 import { buildEntityPath } from '@h5web/shared/hdf5-utils';
-import memoizee from 'memoizee';
 
 import { type AttrValuesStore, type EntitiesStore } from '../providers/models';
 import { hasAttribute } from '../utils';
@@ -23,9 +22,7 @@ import {
 } from '../vis-packs/nexus/utils';
 import { NX_DATA_VIS, NX_NOTE_VIS } from '../vis-packs/nexus/visualizations';
 
-export const resolvePath = memoizee(_resolvePath, { promise: true });
-
-async function _resolvePath(
+export async function resolvePath(
   path: string,
   entitiesStore: EntitiesStore,
   attrValuesStore: AttrValuesStore,

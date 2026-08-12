@@ -1,7 +1,7 @@
 import { getDomain, mockValues, SurfaceVis } from '@h5web/lib';
 import { assertDefined } from '@h5web/shared/guards';
 import { createArrayFromView } from '@h5web/shared/vis-utils';
-import { extend, type Node, useThree } from '@react-three/fiber';
+import { extend, type ThreeElement, useThree } from '@react-three/fiber';
 import { type Meta, type StoryObj } from '@storybook/react-vite';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -10,7 +10,7 @@ import FillHeight from './decorators/FillHeight';
 extend({ OrbitControls });
 declare module '@react-three/fiber' {
   interface ThreeElements {
-    orbitControls: Node<OrbitControls, typeof OrbitControls>;
+    orbitControls: ThreeElement<typeof OrbitControls>;
   }
 }
 

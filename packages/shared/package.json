@@ -8,6 +8,7 @@
   "main": "src/index.ts",
   "exports": {
     "./createMemo": "./src/createMemo.ts",
+    "./fetch-shared": "./src/fetch-shared.ts",
     "./guards": "./src/guards.ts",
     "./h5t": "./src/h5t.ts",
     "./hdf5-models": "./src/hdf5-models.ts",

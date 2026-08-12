@@ -1,58 +1,37 @@
 /* eslint-disable @typescript-eslint/promise-function-async */
-import { createStore, type StoreApi } from 'zustand';
+import {
+  AbortError,
+  createProgressStore,
+  type FetchFunc,
+  type FetchStore,
+  type ProgressStore,
+} from './fetch-shared';
 
-type FetchFunc<Input, Result> = (
-  input: Input,
-  abortSignal: AbortSignal,
-  onProgress: OnProgress,
-) => Promise<Result>;
+export { AbortError, type FetchStore, type OnProgress } from './fetch-shared';
 
 type AreEqual<Input> = (a: Input, b: Input) => boolean;
-export type OnProgress = (value: number) => void;
 
 interface Instance<Result> {
   get: () => Promise<Result>;
+  read: () => Result;
   isError: () => boolean;
   abort: (reason?: string) => void;
 }
 
-export interface FetchStore<Input, Result> {
-  has: (input: Input) => boolean;
-  prefetch: (input: Input) => void;
-  get: (input: Input) => Promise<Result>;
-  preset: (input: Input, result: Result) => void;
-  evict: (input: Input) => void;
-  evictErrors: () => void;
-  abort: (input: Input, reason?: string, evict?: boolean) => void;
-  abortAll: (reason?: string, evict?: boolean) => void;
-  get progressStore(): StoreApi<ProgressState<Input>>;
-}
-
-interface ProgressState<Input> {
-  ongoing: Map<Input, number | undefined>;
-  setProgress: (input: Input, value?: number) => void;
-  clearProgress: (input: Input) => void;
+export interface SuspenseFetchStore<Input, Result> extends FetchStore<
+  Input,
+  Result
+> {
+  read: (input: Input) => Result;
 }
 
 export function createFetchStore<Input, Result>(
   fetchFunc: FetchFunc<Input, Result>,
   areEqual: AreEqual<Input> = Object.is,
-): FetchStore<Input, Result> {
+): SuspenseFetchStore<Input, Result> {
   const cache = createCache<Input, Instance<Result>>(areEqual);
 
-  const progressStore = createStore<ProgressState<Input>>((set, get) => ({
-    ongoing: new Map(),
-    setProgress: (input, value) => {
-      const ongoing = new Map(get().ongoing);
-      ongoing.set(input, value);
-      set({ ongoing });
-    },
-    clearProgress: (input) => {
-      const ongoing = new Map(get().ongoing);
-      ongoing.delete(input);
-      set({ ongoing });
-    },
-  }));
+  const progressStore = createProgressStore<Input>();
 
   return {
     has: (input: Input): boolean => cache.has(input),
@@ -67,10 +46,17 @@ export function createFetchStore<Input, Result>(
       cache.set(input, instance);
       return instance.get();
     },
+    read: (input: Input): Result => {
+      const instance =
+        cache.get(input) || createInstance(input, fetchFunc, progressStore);
+      cache.set(input, instance);
+      return instance.read();
+    },
     preset: (input: Input, result: Result): void => {
       const promise = Promise.resolve(result);
       cache.set(input, {
         get: () => promise,
+        read: () => result,
         isError: () => false,
         abort: () => undefined,
       });
@@ -145,33 +131,44 @@ function createCache<K, V>(areEqual: AreEqual<K>) {
 function createInstance<Input, Result>(
   input: Input,
   fetchFunc: FetchFunc<Input, Result>,
-  progressStore: StoreApi<ProgressState<Input>>,
+  progressStore: ProgressStore<Input>,
 ): Instance<Result> {
+  let status: 'pending' | 'success' | 'error' = 'pending';
   let result: Result | undefined;
   let error: unknown;
   const controller = new AbortController();
 
   const promise: Promise<Result> = (async () => {
     progressStore.getState().setProgress(input);
-    result = await fetchFunc(input, controller.signal, (value) => {
-      progressStore.getState().setProgress(input, value);
-    });
-    progressStore.getState().clearProgress(input);
-    return result;
+    try {
+      result = await fetchFunc(input, controller.signal, (value) => {
+        progressStore.getState().setProgress(input, value);
+      });
+      status = 'success';
+      return result;
+    } catch (caughtError: unknown) {
+      status = 'error';
+      error = caughtError;
+      throw caughtError;
+    } finally {
+      progressStore.getState().clearProgress(input);
+    }
   })();
 
   return {
     get: () => promise,
-    isError: () => error !== undefined,
+    read: () => {
+      if (status === 'error') {
+        throw error;
+      }
+      if (status === 'success') {
+        return result as Result;
+      }
+      throw promise; // eslint-disable-line @typescript-eslint/only-throw-error
+    },
+    isError: () => status === 'error',
     abort: (reason?: string) => {
       controller.abort(new AbortError(reason));
     },
   };
-}
-
-export class AbortError extends Error {
-  public constructor(reason?: string) {
-    super(reason);
-    this.name = 'AbortError';
-  }
 }
