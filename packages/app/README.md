@@ -517,12 +517,13 @@ interface DataContextValue {
 }
 ```
 
-The three stores are created with the
-[react-suspense-fetch](https://github.com/dai-shi/react-suspense-fetch) library,
-which relies on [React Suspense](https://react.dev/reference/react/Suspense). A
-component that uses one of these stores (e.g.
-`entitiesStore.get('/path/to/entity')`) must have a `Suspense` ancestor to
-manage the loading state.
+The three stores are compatibility façades backed by a private
+[TanStack Query](https://tanstack.com/query/latest) client. Their synchronous
+`get` method relies on
+[React Suspense](https://react.dev/reference/react/Suspense), so a component
+that calls, for instance, `entitiesStore.get('/path/to/entity')` must have a
+`Suspense` ancestor to manage the loading state. H5Web's public data hooks use
+TanStack Query's Suspense integration directly.
 
 ```tsx
 <MockProvider>

@@ -17,6 +17,7 @@ import { type FeedbackContext } from './breadcrumbs/models';
 import { DimMappingProvider } from './dim-mapping-store';
 import EntityLoader from './EntityLoader';
 import ErrorFallback from './ErrorFallback';
+import { useDataQueryErrorResetBoundary } from './hooks';
 import MetadataViewer from './metadata-viewer/MetadataViewer';
 import { useDataContext } from './providers/DataProvider';
 import Sidebar from './Sidebar';
@@ -47,7 +48,16 @@ function App(props: Props) {
   const [selectedPath, setSelectedPath] = useState<string>(initialPath);
   const [isInspecting, setInspecting] = useState(false);
 
-  const { valuesStore } = useDataContext();
+  const { valuesStore, entitiesStore, attrValuesStore } = useDataContext();
+  const { reset: resetQueryErrors } = useDataQueryErrorResetBoundary();
+
+  function resetDataErrors() {
+    resetQueryErrors();
+    entitiesStore.evictErrors();
+    attrValuesStore.evictErrors();
+    valuesStore.evictErrors();
+  }
+
   function onSelectPath(path: string) {
     setSelectedPath(path);
     valuesStore.abortAll('entity changed', true);
@@ -67,6 +77,7 @@ function App(props: Props) {
   return (
     <ErrorBoundary
       FallbackComponent={ErrorFallback}
+      onReset={resetDataErrors}
       onError={(err) => {
         if (propagateErrors) {
           throw err;
@@ -126,6 +137,7 @@ function App(props: Props) {
                 <ErrorBoundary
                   resetKeys={[selectedPath, isInspecting]}
                   FallbackComponent={ErrorFallback}
+                  onReset={resetDataErrors}
                 >
                   <Suspense
                     fallback={<EntityLoader isInspecting={isInspecting} />}

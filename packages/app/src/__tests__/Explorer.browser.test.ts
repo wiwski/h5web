@@ -1,6 +1,7 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { page } from 'vitest/browser';
 
+import { MockApi } from '../providers/mock/mock-api';
 import {
   getExplorerItem,
   getNexusExplorerItem,
@@ -18,6 +19,16 @@ test('select root group by default', async () => {
   const fileBtn = getExplorerItem('source.h5');
   expect(fileBtn).toBeVisible();
   expect(fileBtn).toHaveAttribute('aria-selected', 'true');
+});
+
+test('reuse non-group children seeded by a group fetch', async () => {
+  const getEntitySpy = vi.spyOn(MockApi.prototype, 'getEntity');
+  const { selectExplorerNode } = await renderApp('/scalars');
+  getEntitySpy.mockClear();
+
+  await selectExplorerNode('number');
+
+  expect(getEntitySpy).not.toHaveBeenCalledWith('/scalars/number');
 });
 
 test('toggle sidebar', async () => {

@@ -1,6 +1,8 @@
-import { expect, test } from 'vitest';
+import { type AttributeValues, type Entity } from '@h5web/shared/hdf5-models';
+import { expect, test, vi } from 'vitest';
 import { page } from 'vitest/browser';
 
+import { MockApi } from '../providers/mock/mock-api';
 import { mockConsoleMethod, mockDelay, renderApp } from '../test-utils';
 
 test('inspect group', async () => {
@@ -47,6 +49,35 @@ test('inspect scalar datasets', async () => {
   await selectExplorerNode('complex');
   expect(typeRow).toHaveTextContent(/Complex$/);
   expect(attrRow).toHaveTextContent(/1 \+ 5 i$/);
+});
+
+test('show the attribute Suspense loader while values are fetched', async () => {
+  const originalGetAttrValues = MockApi.prototype.getAttrValues; // eslint-disable-line vitest/unbound-method
+  let resolveFetch: (() => void) | undefined;
+  const pendingFetch = new Promise<void>((resolve) => {
+    resolveFetch = resolve;
+  });
+  async function getAttrValues(
+    this: MockApi,
+    entity: Entity,
+  ): Promise<AttributeValues> {
+    if (entity.path === '/scalars/number') {
+      await pendingFetch;
+    }
+
+    return originalGetAttrValues.call(this, entity);
+  }
+
+  vi.spyOn(MockApi.prototype, 'getAttrValues').mockImplementation(
+    getAttrValues,
+  );
+
+  await renderApp('/scalars/number');
+  await page.getByRole('tab', { name: 'Inspect' }).click();
+
+  await expect.element(page.getByTestId('LoadingAttributes')).toBeVisible();
+  resolveFetch?.();
+  await expect.element(page.getByRole('row', { name: /^attr/ })).toBeVisible();
 });
 
 test('inspect array dataset', async () => {

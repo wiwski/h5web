@@ -1,6 +1,11 @@
 import { isGroup } from '@h5web/shared/guards';
+import {
+  type AttributeValues,
+  type Entity,
+  type ProvidedEntity,
+} from '@h5web/shared/hdf5-models';
 import { getNameFromPath } from '@h5web/shared/hdf5-utils';
-import { createFetchStore } from '@h5web/shared/react-suspense-fetch';
+import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import {
   createContext,
   type PropsWithChildren,
@@ -13,7 +18,13 @@ import {
   type AttrValuesStore,
   type EntitiesStore,
   type ValuesStore,
+  type ValuesStoreParams,
 } from './models';
+import {
+  createDataQueryClient,
+  createQueryStore,
+  type QueryStore,
+} from './query-store';
 
 export interface DataContextValue {
   filepath: string;
@@ -27,9 +38,23 @@ export interface DataContextValue {
   getSearchablePaths?: DataProviderApi['getSearchablePaths'];
 }
 
-const DataContext = createContext({} as DataContextValue);
+type EntityQueryKey = readonly ['entity', string];
+type ValueQueryKey = readonly ['dataset-value', string, string | undefined];
+type AttrValuesQueryKey = readonly ['attribute-values', string];
 
-export function useDataContext() {
+interface InternalDataContextValue extends DataContextValue {
+  entitiesStore: QueryStore<string, ProvidedEntity, EntityQueryKey>;
+  valuesStore: QueryStore<ValuesStoreParams, unknown, ValueQueryKey>;
+  attrValuesStore: QueryStore<Entity, AttributeValues, AttrValuesQueryKey>;
+}
+
+const DataContext = createContext({} as InternalDataContextValue);
+
+export function useDataContext(): DataContextValue {
+  return useContext(DataContext);
+}
+
+export function useInternalDataContext(): InternalDataContextValue {
   return useContext(DataContext);
 }
 
@@ -41,52 +66,65 @@ function DataProvider(props: PropsWithChildren<Props>) {
   const { api, children } = props;
 
   const entitiesStore = useMemo(() => {
-    const store = createFetchStore(async (path: string) => {
-      const entity = await api.getEntity(path);
+    const queryClient = createDataQueryClient();
+    const store = createQueryStore(
+      queryClient,
+      async (path: string) => {
+        const entity = await api.getEntity(path);
 
-      if (isGroup(entity)) {
-        // Cache non-group children (datasets, datatypes and links)
-        entity.children.forEach((child) => {
-          if (!isGroup(child)) {
-            store.preset(child.path, child);
-          }
-        });
-      }
+        if (isGroup(entity)) {
+          // Cache non-group children (datasets, datatypes and links)
+          entity.children.forEach((child) => {
+            if (!isGroup(child)) {
+              store.preset(child.path, child);
+            }
+          });
+        }
 
-      return entity;
-    });
+        return entity;
+      },
+      (path) => ['entity', path] as const,
+    );
 
     store.prefetch('/'); // pre-fetch root group
     return store;
   }, [api]);
 
+  const { queryClient } = entitiesStore;
+
   const valuesStore = useMemo(() => {
-    return createFetchStore(api.getValue.bind(api), (a, b) => {
-      return a.dataset.path === b.dataset.path && a.selection === b.selection;
-    });
-  }, [api]);
+    return createQueryStore(
+      queryClient,
+      api.getValue.bind(api),
+      ({ dataset, selection }) =>
+        ['dataset-value', dataset.path, selection] as const,
+    );
+  }, [api, queryClient]);
 
   const attrValuesStore = useMemo(() => {
-    return createFetchStore(
+    return createQueryStore(
+      queryClient,
       api.getAttrValues.bind(api),
-      (a, b) => a.path === b.path,
+      (entity) => ['attribute-values', entity.path] as const,
     );
-  }, [api]);
+  }, [api, queryClient]);
 
   return (
-    <DataContext.Provider
-      value={{
-        filepath: api.filepath,
-        filename: getNameFromPath(api.filepath),
-        entitiesStore,
-        valuesStore,
-        attrValuesStore,
-        getExportURL: api.getExportURL?.bind(api),
-        getSearchablePaths: api.getSearchablePaths?.bind(api),
-      }}
-    >
-      {children}
-    </DataContext.Provider>
+    <QueryErrorResetBoundary>
+      <DataContext.Provider
+        value={{
+          filepath: api.filepath,
+          filename: getNameFromPath(api.filepath),
+          entitiesStore,
+          valuesStore,
+          attrValuesStore,
+          getExportURL: api.getExportURL?.bind(api),
+          getSearchablePaths: api.getSearchablePaths?.bind(api),
+        }}
+      >
+        {children}
+      </DataContext.Provider>
+    </QueryErrorResetBoundary>
   );
 }
 

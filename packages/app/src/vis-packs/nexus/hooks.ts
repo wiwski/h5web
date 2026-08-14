@@ -11,8 +11,11 @@ import {
   type Value,
 } from '@h5web/shared/hdf5-models';
 
-import { useValuesInCache } from '../../hooks';
-import { useDataContext } from '../../providers/DataProvider';
+import { useDataSuspenseQueries, useValuesInCache } from '../../hooks';
+import {
+  useDataContext,
+  useInternalDataContext,
+} from '../../providers/DataProvider';
 import { type FieldDef, type NxData } from './models';
 import {
   assertNxDataGroup,
@@ -86,14 +89,22 @@ export function useNxValues<D extends Dataset<ArrayShape | ScalarShape>>(
   datasets: (D | undefined)[],
   selection?: string,
 ): (Value<D> | undefined)[] {
-  const { valuesStore } = useDataContext();
+  const { valuesStore } = useInternalDataContext();
+  const presentDatasets = datasets.filter(isDefined);
+  const results = useDataSuspenseQueries(
+    presentDatasets.map((dataset) =>
+      valuesStore.getQueryOptions({ dataset, selection }),
+    ),
+  );
+  let resultIndex = 0;
 
   return datasets.map((dataset) => {
     if (!dataset) {
       return undefined;
     }
 
-    const value = valuesStore.get({ dataset, selection });
+    const value = results[resultIndex].data;
+    resultIndex += 1;
     assertValue(value, dataset);
     return value;
   });

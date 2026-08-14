@@ -4,7 +4,8 @@ import { buildEntityPath } from '@h5web/shared/hdf5-utils';
 import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-import { useEntity } from '../hooks';
+import { useDataQueryErrorResetBoundary, useEntity } from '../hooks';
+import { useDataContext } from '../providers/DataProvider';
 import AttrErrorFallback from './AttrErrorFallback';
 import AttributesInfo from './AttributesInfo';
 import AttrValueLoader from './AttrValueLoader';
@@ -22,6 +23,8 @@ function MetadataViewer(props: Props) {
   const { path, onSelectPath } = props;
 
   const entity = useEntity(path);
+  const { attrValuesStore } = useDataContext();
+  const { reset: resetQueryErrors } = useDataQueryErrorResetBoundary();
   const { kind, attributes } = entity;
   const title = kind === EntityKind.Unresolved ? 'Entity' : kind;
 
@@ -36,6 +39,10 @@ function MetadataViewer(props: Props) {
           <ErrorBoundary
             resetKeys={[path]}
             FallbackComponent={AttrErrorFallback}
+            onReset={() => {
+              resetQueryErrors();
+              attrValuesStore.evictErrors();
+            }}
           >
             <Suspense fallback={<AttrValueLoader />}>
               <AttributesInfo

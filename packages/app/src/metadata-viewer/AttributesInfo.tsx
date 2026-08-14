@@ -1,7 +1,7 @@
 import { isComplexValue } from '@h5web/shared/guards';
 import { type ProvidedEntity } from '@h5web/shared/hdf5-models';
 
-import { useDataContext } from '../providers/DataProvider';
+import { useAttrValues } from '../hooks';
 import AttributeLink from './AttributeLink';
 import { renderComplex } from './utils';
 
@@ -20,8 +20,7 @@ interface Props {
 function AttributesInfo(props: Props) {
   const { entity, onFollowPath } = props;
 
-  const { attrValuesStore } = useDataContext();
-  const attrValues = attrValuesStore.get(entity);
+  const attrValues = useAttrValues(entity);
 
   return entity.attributes.map(({ name, type }) => {
     const value = attrValues[name];
